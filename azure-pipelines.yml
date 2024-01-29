@@ -1,0 +1,44 @@
+trigger:
+  branches:
+    exclude:
+      - '*'
+
+pr:
+  branches:
+    exclude:
+      - '*'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: 'BuildAndDeploy'
+  displayName: 'Build and Deploy'
+  steps:
+  - script: echo Building Docker images
+    displayName: 'Build Docker Images'
+    
+  - task: Docker@2
+    inputs:
+      command: 'build'
+      azureSubscriptionEndpoint: '<nombre-de-tu-conexion-aks>'
+      azureContainerRegistry: '<nombre-de-tu-registro-de-contenedores>'
+      dockerFile: '**/Dockerfile'
+      imageName: '<nombre-de-tu-imagen>:$(Build.BuildId)'
+      includeLatestTag: true
+
+  - task: Docker@2
+    inputs:
+      command: 'push'
+      azureSubscriptionEndpoint: '<nombre-de-tu-conexion-aks>'
+      azureContainerRegistry: '<nombre-de-tu-registro-de-contenedores>'
+      imageName: '<nombre-de-tu-imagen>:$(Build.BuildId)'
+      includeLatestTag: true
+
+  - task: KubernetesManifest@0
+    inputs:
+      action: 'deploy'
+      kubernetesServiceConnection: '<nombre-de-tu-conexion-aks>'
+      namespace: 'default'
+      manifests: '**/*.yaml'
+      containers: '<nombre-de-tu-imagen>:$(Build.BuildId)'
